@@ -59,6 +59,11 @@ func TestFindingValidate(t *testing.T) {
 			finding: Finding{ID: "x", Severity: Low, CVSS: -1},
 			wantErr: ErrCVSSOutOfRange,
 		},
+		{
+			name:    "empty id and bad cvss",
+			finding: Finding{Severity: High, CVSS: 99},
+			wantErr: ErrCVSSOutOfRange, // errors.Is still finds it inside the join
+		},
 	}
 
 	for _, tt := range tests {

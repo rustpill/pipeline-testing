@@ -42,16 +42,17 @@ type Finding struct {
 }
 
 func (f Finding) Validate() error {
+	var errs []error
 	if f.ID == "" {
-		return ErrEmptyID
+		errs = append(errs, ErrEmptyID)
 	}
 
 	if !f.Severity.valid() {
-		return ErrUnknownSeverity
+		errs = append(errs, ErrUnknownSeverity)
 	}
 
 	if f.CVSS < 0 || f.CVSS > 10 {
-		return ErrCVSSOutOfRange
+		errs = append(errs, ErrCVSSOutOfRange)
 	}
-	return nil
+	return errors.Join(errs...)
 }
