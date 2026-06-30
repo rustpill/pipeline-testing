@@ -65,6 +65,7 @@ func TestPipelineDeadLetters(t *testing.T) {
 func TestDeadLetterFailsError(t *testing.T) {
 	out := &FakeProducer{}
 	dlq := &FakeProducer{
+		// force error
 		ProducedFn: func(Message) error {
 			return errors.New("dead-letter broker unreachable")
 		},
@@ -75,4 +76,18 @@ func TestDeadLetterFailsError(t *testing.T) {
 	if err == nil {
 		t.Fatal("expected an error when the dead-letter producer fails, got nil")
 	}
+}
+
+func TestPipelineDropsDuplicates(t *testing.T) {
+	out := &FakeProducer{}
+	dlq := &FakeProducer{}
+	p := NewPipeline(out, dlq)
+
+	raw := []byte(`{"id":"CVE-2021-44228","severity":"critical","cvss":10}`)
+
+	_ = p.Handle(raw)
+	_ = p.Handle(raw)
+
+	assertEqual(t, len(out.Produced), 1, "Duplicates should be ignore:")
+
 }

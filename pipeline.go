@@ -6,10 +6,15 @@ import "fmt"
 type Pipeline struct {
 	out        Producer
 	deadLetter Producer
+	dedup      *Deduper
 }
 
 func NewPipeline(out, deadLetter Producer) *Pipeline {
-	return &Pipeline{out: out, deadLetter: deadLetter}
+	return &Pipeline{
+		out:        out,
+		deadLetter: deadLetter,
+		dedup:      NewDeduper(),
+	}
 }
 
 func (p *Pipeline) Handle(raw []byte) error {
@@ -21,6 +26,11 @@ func (p *Pipeline) Handle(raw []byte) error {
 
 	if err := f.Validate(); err != nil {
 		return p.toDeadLetter(raw, err)
+	}
+
+	// check if seen
+	if p.dedup.Seen(f.ID) {
+		return nil
 	}
 
 	// Create Message from bytes
