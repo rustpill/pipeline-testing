@@ -1,5 +1,7 @@
 package pipeline
 
+import "fmt"
+
 // Pipeline
 type Pipeline struct {
 	out        Producer
@@ -14,7 +16,11 @@ func (p *Pipeline) Handle(raw []byte) error {
 	f, err := Decode(raw)
 
 	if err != nil {
-		return err
+		return p.toDeadLetter(raw, err)
+	}
+
+	if err := f.Validate(); err != nil {
+		return p.toDeadLetter(raw, err)
 	}
 
 	// Create Message from bytes
@@ -26,4 +32,14 @@ func (p *Pipeline) Handle(raw []byte) error {
 	}
 
 	return p.out.Produce(msg)
+}
+
+func (p *Pipeline) toDeadLetter(raw []byte, cause error) error {
+	msg := Message{Topic: TopicDeadLetter, Value: raw}
+
+	if err := p.deadLetter.Produce(msg); err != nil {
+		return fmt.Errorf("dead-letter produce failed (cause: %v): %w", cause, err)
+	}
+
+	return nil
 }

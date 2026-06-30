@@ -29,9 +29,10 @@ func (s Severity) valid() bool {
 type Topic string
 
 const (
-	TopicDefault  Topic = "findings.default"
-	TopicPriority Topic = "findings.priority"
-	TopicAlerts   Topic = "findings.alerts"
+	TopicDefault    Topic = "findings.default"
+	TopicPriority   Topic = "findings.priority"
+	TopicAlerts     Topic = "findings.alerts"
+	TopicDeadLetter Topic = "findings.dead-letter"
 )
 
 type Finding struct {
