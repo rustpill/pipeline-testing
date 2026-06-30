@@ -20,10 +20,7 @@ func TestRoute(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			got := Route(tt.in)
-			if got != tt.want {
-				t.Errorf("Route(%v) = %v, want %v", Critical, got, tt.want)
-			}
+			assertEqual(t, Route(tt.in), tt.want, "Severity should be routed into correct topic:")
 		})
 	}
 }

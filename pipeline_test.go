@@ -1,6 +1,9 @@
 package pipeline
 
-import "testing"
+import (
+	"errors"
+	"testing"
+)
 
 func TestPipelineHandle(t *testing.T) {
 	t.Run("valid critical finding is produced to the alerts topic", func(t *testing.T) {
@@ -16,15 +19,11 @@ func TestPipelineHandle(t *testing.T) {
 		if len(out.Produced) != 1 {
 			t.Fatalf("expected 1 message on out, got %d", len(out.Produced))
 		}
-		if got := out.Produced[0].Topic; got != TopicAlerts {
-			t.Errorf("produced to %v, want %v", got, TopicAlerts)
-		}
-		if got := out.Produced[0].Key; got != "CVE-2021-44228" {
-			t.Errorf("message key = %q, want the finding id", got)
-		}
-		if len(dlq.Produced) != 0 {
-			t.Errorf("expected nothing on the dead-letter topic, got %d", len(dlq.Produced))
-		}
+		assertEqual(t, out.Produced[0].Topic, TopicAlerts, "Message should be sent to TopicAlerts topic:")
+
+		assertEqual(t, out.Produced[0].Key, "CVE-2021-44228", "Message key should be finding ID:")
+
+		assertEqual(t, len(dlq.Produced), 0, "DLQ should be empty")
 
 	})
 }
@@ -50,16 +49,30 @@ func TestPipelineDeadLetters(t *testing.T) {
 			if err := p.Handle([]byte(test.raw)); err != nil {
 				t.Fatalf("unexpected error: %v", err)
 			}
-			if len(out.Produced) != 0 {
-				t.Errorf("bad input should not reach the out topic, got %d messages", len(out.Produced))
-			}
+
+			assertEqual(t, len(out.Produced), 0, "Bad input should not reach out topic:")
+
 			if len(dlq.Produced) != 1 {
 				t.Fatalf("expected 1 message on the dead-letter topic, got %d", len(dlq.Produced))
 			}
-			if got := dlq.Produced[0].Topic; got != TopicDeadLetter {
-				t.Errorf("dead-lettered to %v, want %v", got, TopicDeadLetter)
-			}
+
+			assertEqual(t, dlq.Produced[0].Topic, TopicDeadLetter, "TopicDeadLetter expected in DLQ:")
 
 		})
+	}
+}
+
+func TestDeadLetterFailsError(t *testing.T) {
+	out := &FakeProducer{}
+	dlq := &FakeProducer{
+		ProducedFn: func(Message) error {
+			return errors.New("dead-letter broker unreachable")
+		},
+	}
+	p := NewPipeline(out, dlq)
+
+	err := p.Handle([]byte(`{not json`))
+	if err == nil {
+		t.Fatal("expected an error when the dead-letter producer fails, got nil")
 	}
 }

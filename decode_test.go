@@ -12,9 +12,7 @@ func TestDecode(t *testing.T) {
 		}
 
 		want := Finding{ID: "CVE-2021-44228", Package: "log4j", Severity: Critical, CVSS: 10}
-		if got != want {
-			t.Errorf("got %+v, want %+v", got, want)
-		}
+		assertEqual(t, got, want, "Bytes should decode into expected struct:")
 
 	})
 
